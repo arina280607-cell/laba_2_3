@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from src.contracts.message import Message
+from src.contracts.tasks import Message
 from src.sources.repository import register_source
 
 

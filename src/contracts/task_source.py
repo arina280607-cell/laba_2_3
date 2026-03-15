@@ -1,11 +1,11 @@
 from collections.abc import Iterable
 from typing import Protocol, runtime_checkable
 
-from src.contracts.message import Message
+from src.contracts.tasks import Task
 
 
 @runtime_checkable
-class MessageSource(Protocol):
+class TaskSource(Protocol):
     name: str
 
-    def fetch(self) -> Iterable[Message]: ...
+    def fetch(self) -> Iterable[Task]: ...

@@ -3,7 +3,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import TextIO
 
-from src.contracts.message import Message
+from src.contracts.tasks import Message
 from src.sources.repository import register_source
 
 

@@ -1,7 +1,7 @@
 from collections.abc import Sequence, Iterable
 
-from src.contracts.message import Message
-from src.contracts.message_source import MessageSource
+from src.contracts.tasks import Message
+from src.contracts.task_source import MessageSource
 
 
 class InboxApp:
