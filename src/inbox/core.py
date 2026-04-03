@@ -1,17 +1,24 @@
-from collections.abc import Sequence, Iterable
-
-from src.contracts.tasks import Task
+from typing import List
 from src.contracts.task_source import TaskSource
+from src.contracts.tasks import Task
 
 
 class InboxApp:
-    """приложение для сбора задач из источников"""
-    def __init__(self, sources: Sequence[TaskSource] = None):
-        self._sources = sources or []
+    """
+    Основное приложение
+    """
 
-    def iter_messages(self) -> Iterable[Task]:
-        for src in self._sources:
-            if not isinstance(src, TaskSource):
-                raise TypeError("Source object must be TaskSource")
-            for task in src.fetch():
-                yield task
+    def __init__(self):
+        self.tasks: List[Task] = []
+
+    def load_tasks(self, source: TaskSource):
+        # runtime проверка Protocol
+        if not isinstance(source, TaskSource):
+            raise TypeError("Источник не реализует TaskSource")
+
+        for task in source.get_tasks():
+            self.tasks.append(task)
+
+    def show_tasks(self):
+        for task in self.tasks:
+            print(task)

@@ -1,14 +1,17 @@
-from functools import wraps
-from typing import Callable, Type
-
+from typing import Dict, Type
 from src.contracts.task_source import TaskSource
 
-SourceFactory = Callable[..., TaskSource]
 
-REGISTRY: dict[str, SourceFactory] = {}
+class SourceRepository:
+    """
+    Хранилище доступных источников
+    """
 
-def register_source(name: str):
-    def _decorator(class_or_function: Type | Callable):
-        REGISTRY[name] = class_or_function
-        return class_or_function
-    return _decorator
+    def __init__(self):
+        self._sources: Dict[str, Type[TaskSource]] = {}
+
+    def register(self, name: str, source_cls: Type[TaskSource]):
+        self._sources[name] = source_cls
+
+    def get(self, name: str) -> Type[TaskSource]:
+        return self._sources[name]

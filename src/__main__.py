@@ -1,4 +1,4 @@
-from src.cli import cli
+from src.cli import main
 
-
-cli()
+if __name__ == '__main__':
+    main()
