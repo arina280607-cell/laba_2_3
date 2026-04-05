@@ -9,14 +9,14 @@ class InboxApp:
     """
 
     def __init__(self):
-        self.tasks: List[Task] = []
+        self.tasks: List[Task] = []#tasks будет списком объектов типа Task
 
     def load_tasks(self, source: TaskSource):
-        # runtime проверка Protocol
-        if not isinstance(source, TaskSource):
+        #проверка Protocol
+        if not isinstance(source, TaskSource):#Проверяет, соответствует ли объект протоколу(наличие метода get_tasks())
             raise TypeError("Источник не реализует TaskSource")
 
-        for task in source.get_tasks():
+        for task in source.get_tasks():#вызов метода у объекта source
             self.tasks.append(task)
 
     def show_tasks(self):

@@ -4,21 +4,21 @@ from src.sources.stdin import StdinTaskSource
 
 
 def main():
-    app = InboxApp()
-
+    app = InboxApp() #Новый пустой экземпляр класса с self.tasks = []
+    #Переменная теперь хранит ссылку на созданный объект
     print("Выберите источник:")
     print("1 - JSON файл")
     print("2 - Ввод вручную")
 
-    choice = input("> ")
+    choice = input("> ")#Ждем ввод пользователя
 
     if choice == "1":
-        source = JSONTaskSource("tasks.jsonl")
+        source = JSONTaskSource("tasks.jsonl")#Создаёт источник, читающий файл
     elif choice == "2":
-        source = StdinTaskSource()
+        source = StdinTaskSource()#Создаёт источник для ручного ввода
     else:
         print("Неверный выбор")
         return
 
-    app.load_tasks(source)
+    app.load_tasks(source)#Загружает задачи в приложение, наполняет self.tasks
     app.show_tasks()

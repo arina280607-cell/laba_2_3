@@ -4,7 +4,7 @@ from typing import Protocol, runtime_checkable
 from src.contracts.tasks import Task
 
 
-@runtime_checkable
+@runtime_checkable#для проверки наличия атрибутов
 class TaskSource(Protocol):
     """
     контракт для всех источников задач

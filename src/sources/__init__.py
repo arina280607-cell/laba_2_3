@@ -1,2 +1,5 @@
-from .stdin import create_stdin_source
-from .json import create_json_source
+from .stdin import StdinTaskSource
+from .json import JSONTaskSource
+from .repository import SourceRepository
+
+__all__ = ['StdinTaskSource', 'JSONTaskSource', 'SourceRepository']

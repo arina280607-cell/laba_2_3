@@ -1,184 +1,349 @@
+"""
+Тесты для лабораторной работы №2
+"""
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import pytest
-from src.contracts.task_source import TaskSource
-from io import StringIO
-from src.sources.stdin import StdinLineSource
-from src.sources.json import JsonlSource
-from src.sources.repository import REGISTRY
-from src.inbox.core import InboxApp
+from datetime import datetime
+from src.contracts.tasks import Task, PositiveInt, StatusDescriptor
 
 
-class TestStdinSource:
-    """Тесты для источника из stdin."""
+class TestPositiveIntDescriptor:
+    """Тесты для дескриптора PositiveInt"""
 
-    def test_fetch_single_task(self):
-        """Тест чтения одной задачи."""
-        stream = StringIO("task1:Hello world\n")
-        source = StdinLineSource(stream=stream)
+    def test_valid_values(self):
+        """Тест корректных значений"""
 
-        tasks = list(source.fetch())
-        assert len(tasks) == 1
-        assert tasks[0].id == "task1"
-        assert tasks[0].payload == "Hello world"  # strip() убирает \n
+        class TestModel:
+            value = PositiveInt()
 
-    def test_fetch_multiple_tasks(self):
-        """Тест чтения нескольких задач."""
-        stream = StringIO("task1:Hello\ntask2:World\n")
-        source = StdinLineSource(stream=stream)
+        obj = TestModel()
+        obj.value = 1
+        assert obj.value == 1
 
-        tasks = list(source.fetch())
-        assert len(tasks) == 2
-        assert tasks[0].id == "task1"
-        assert tasks[0].payload == "Hello"
-        assert tasks[1].id == "task2"
-        assert tasks[1].payload == "World"
+        obj.value = 100
+        assert obj.value == 100
+        obj.value = 999
+        assert obj.value == 999
 
-    def test_skip_empty_lines(self):
-        """Тест пропуска пустых строк."""
-        stream = StringIO("task1:Hello\n\ntask2:World\n")
-        source = StdinLineSource(stream=stream)
+    def test_invalid_values_raise_error(self):
+        """Тест некорректных значений"""
 
-        tasks = list(source.fetch())
-        # Из-за strip() пустая строка станет "" и будет пропущена
-        assert len(tasks) == 2
-        assert tasks[0].id == "task1"
-        assert tasks[0].payload == "Hello"
-        assert tasks[1].id == "task2"
-        assert tasks[1].payload == "World"
+        class TestModel:
+            value = PositiveInt()
 
-    def test_task_without_payload(self):
-        """Тест задачи без payload."""
-        stream = StringIO("task1\n")
-        source = StdinLineSource(stream=stream)
+        obj = TestModel()
 
-        tasks = list(source.fetch())
-        assert len(tasks) == 1
-        assert tasks[0].id == "task1"
-        assert tasks[0].payload == ""
+        with pytest.raises(ValueError, match="Должно быть положительным целым числом"):
+            obj.value = 0
 
-    def test_task_with_extra_spaces(self):
-        """Тест задачи с пробелами."""
-        stream = StringIO("  task1  :  Hello world  \n")
-        source = StdinLineSource(stream=stream)
+        with pytest.raises(ValueError, match="Должно быть положительным целым числом"):
+            obj.value = -5
 
-        tasks = list(source.fetch())
-        assert len(tasks) == 1
-        # strip() убирает пробелы по краям
-        assert tasks[0].id == "task1"
-        assert tasks[0].payload == "Hello world"
+        with pytest.raises(ValueError, match="Должно быть положительным целым числом"):
+            obj.value = -100
+
+        with pytest.raises(ValueError, match="Должно быть положительным целым числом"):
+            obj.value = 3.14
+
+        with pytest.raises(ValueError, match="Должно быть положительным целым числом"):
+            obj.value = "abc"
+
+    def test_descriptor_via_class(self):
+        """Тест доступа к дескриптору через класс"""
+
+        class TestModel:
+            value = PositiveInt()
+
+        assert isinstance(TestModel.value, PositiveInt)
 
 
-class TestJsonlSource:
-    """Тесты для JSONL источника."""
+class TestStatusDescriptor:
+    """Тесты для дескриптора StatusDescriptor"""
 
-    def test_fetch_from_jsonl(self, tmp_path):
-        """Тест чтения из JSONL файла."""
-        jsonl_file = tmp_path / "tasks.jsonl"
-        jsonl_file.write_text(
-            '{"id": "task1", "data": "hello"}\n'
-            '{"id": "task2", "data": "world"}\n',
-            encoding='utf-8'
-        )
+    def test_valid_statuses(self):
+        """Тест корректных статусов"""
 
-        source = JsonlSource(path=jsonl_file)
-        tasks = list(source.fetch())
+        class TestModel:
+            status = StatusDescriptor()
 
-        assert len(tasks) == 2
-        assert tasks[0].id == "task1"
-        assert tasks[0].payload == {"data": "hello"}
+        obj = TestModel()
 
-    def test_auto_generate_id(self, tmp_path):
-        """Тест автоматической генерации ID."""
-        jsonl_file = tmp_path / "tasks.jsonl"
-        jsonl_file.write_text('{"data": "test"}\n', encoding='utf-8')
+        obj.status = "new"
+        assert obj.status == "new"
 
-        source = JsonlSource(path=jsonl_file)
-        tasks = list(source.fetch())
+        obj.status = "in_progress"
+        assert obj.status == "in_progress"
 
-        assert len(tasks) == 1
-        assert tasks[0].id == "tasks.jsonl:1"
-        assert tasks[0].payload == {"data": "test"}
+        obj.status = "done"
+        assert obj.status == "done"
 
-    def test_invalid_json(self, tmp_path):
-        """Тест обработки невалидного JSON."""
-        jsonl_file = tmp_path / "tasks.jsonl"
-        jsonl_file.write_text('{"id": "task1"}\ninvalid json\n', encoding='utf-8')
+    def test_invalid_statuses_raise_error(self):
+        """Тест некорректных статусов"""
 
-        source = JsonlSource(path=jsonl_file)
+        class TestModel:
+            status = StatusDescriptor()
 
-        with pytest.raises(ValueError, match="Bad JSON"):
-            list(source.fetch())
+        obj = TestModel()
+
+        invalid_statuses = ["finished", "pending", "closed", "NEW", "DONE", "", None, 123, "inprogress"]
+
+        for status in invalid_statuses:
+            with pytest.raises(ValueError, match="Некорректный статус"):
+                obj.status = status
 
 
-class TestRepository:
-    """Тесты для реестра источников."""
+class TestTaskCreation:
+    """Тесты создания задач"""
 
-    def test_registry_contains_sources(self):
-        """Тест наличия источников в реестре."""
-        assert "stdin" in REGISTRY
-        assert "file-jsonl" in REGISTRY
+    def test_create_valid_task(self):
+        """Создание корректной задачи"""
+        task = Task(id=1, description="Тестовая задача", priority=5, status="new")
 
-    def test_create_stdin_source(self):
-        """Тест создания источника через фабрику."""
-        source = REGISTRY["stdin"]()
-        assert source.name == "stdin"
-        assert hasattr(source, "fetch")
+        assert task.id == 1
+        assert task.description == "Тестовая задача"
+        assert task.priority == 5
+        assert task.status == "new"
+        assert isinstance(task.created_at, datetime)
 
-    def test_create_json_source(self, tmp_path):
-        """Тест создания JSONL источника через фабрику."""
-        source = REGISTRY["file-jsonl"](tmp_path / "test.jsonl")
-        assert source.name == "file-jsonl"
+    def test_create_task_with_defaults(self):
+        """Создание задачи с параметрами по умолчанию"""
+        task = Task(id=1, description="Тест")
 
+        assert task.id == 1
+        assert task.description == "Тест"
+        assert task.priority == 1
+        assert task.status == "new"
 
-class TestInboxApp:
-    """Тесты для InboxApp."""
+    def test_create_task_invalid_id(self):
+        """Ошибка при некорректном ID"""
+        with pytest.raises(ValueError, match="Должно быть положительным целым числом"):
+            Task(id=0, description="Тест")
 
-    def test_iter_messages(self):
-        """Тест итерации по задачам из нескольких источников."""
-        stream1 = StringIO("task1:Hello\n")
-        stream2 = StringIO("task2:World\n")
+        with pytest.raises(ValueError, match="Должно быть положительным целым числом"):
+            Task(id=-5, description="Тест")
 
-        sources = [
-            StdinLineSource(stream=stream1),
-            StdinLineSource(stream=stream2),
-        ]
+    def test_create_task_invalid_priority(self):
+        """Ошибка при некорректном приоритете"""
+        with pytest.raises(ValueError, match="Должно быть положительным целым числом"):
+            Task(id=1, description="Тест", priority=0)
 
-        app = InboxApp(sources)
-        tasks = list(app.iter_messages())
+        with pytest.raises(ValueError, match="Должно быть положительным целым числом"):
+            Task(id=1, description="Тест", priority=-3)
 
-        assert len(tasks) == 2
-        assert tasks[0].id == "task1"
-        assert tasks[0].payload == "Hello"
-        assert tasks[1].id == "task2"
-        assert tasks[1].payload == "World"
+    def test_create_task_invalid_status(self):
+        """Ошибка при некорректном статусе"""
+        with pytest.raises(ValueError, match="Некорректный статус"):
+            Task(id=1, description="Тест", status="finished")
 
-    def test_empty_sources(self):
-        """Тест с пустым списком источников."""
-        app = InboxApp([])
-        tasks = list(app.iter_messages())
-        assert len(tasks) == 0
-
-    def test_invalid_source(self):
-        """Тест с некорректным источником."""
-        app = InboxApp(["not a source"])
-        with pytest.raises(TypeError, match="Source object must be TaskSource"):
-            list(app.iter_messages())
+        with pytest.raises(ValueError, match="Некорректный статус"):
+            Task(id=1, description="Тест", status="pending")
 
 
-class TestProtocol:
-    """Тесты для проверки контрактов."""
+class TestTaskModification:
+    """Тесты изменения атрибутов"""
 
-    def test_isinstance_check(self):
-        """Тест проверки через isinstance с Protocol."""
-        source = StdinLineSource()
-        assert isinstance(source, TaskSource)
+    def test_modify_id(self):
+        """Изменение ID с валидацией"""
+        task = Task(id=1, description="Тест")
 
-    def test_hasattr_check(self):
-        """Тест структурной проверки."""
-        source = StdinLineSource()
-        assert hasattr(source, 'name')
-        assert hasattr(source, 'fetch')
-        assert callable(source.fetch)
+        task.id = 10
+        assert task.id == 10
+
+        task.id = 999
+        assert task.id == 999
+
+        with pytest.raises(ValueError, match="Должно быть положительным целым числом"):
+            task.id = -1
+
+        with pytest.raises(ValueError, match="Должно быть положительным целым числом"):
+            task.id = 0
+
+    def test_modify_priority(self):
+        """Изменение приоритета с валидацией"""
+        task = Task(id=1, description="Тест", priority=5)
+
+        task.priority = 10
+        assert task.priority == 10
+
+        task.priority = 1
+        assert task.priority == 1
+
+        with pytest.raises(ValueError, match="Должно быть положительным целым числом"):
+            task.priority = 0
+
+        with pytest.raises(ValueError, match="Должно быть положительным целым числом"):
+            task.priority = -5
+
+    def test_modify_status(self):
+        """Изменение статуса с валидацией"""
+        task = Task(id=1, description="Тест", status="new")
+
+        task.status = "in_progress"
+        assert task.status == "in_progress"
+
+        task.status = "done"
+        assert task.status == "done"
+
+        task.status = "new"
+        assert task.status == "new"
+
+        with pytest.raises(ValueError, match="Некорректный статус"):
+            task.status = "finished"
+
+    def test_cannot_modify_created_at(self):
+        """created_at нельзя изменить (только для чтения)"""
+        task = Task(id=1, description="Тест")
+        original = task.created_at
+
+        with pytest.raises(AttributeError):
+            task.created_at = datetime.now()
+
+        assert task.created_at == original
+
+    def test_description_is_regular_attribute(self):
+        """description - обычный атрибут без валидации"""
+        task = Task(id=1, description="Тест")
+
+        task.description = "Новое описание"
+        assert task.description == "Новое описание"
+
+        task.description = "Любой текст"
+        assert task.description == "Любой текст"
+
+
+class TestTaskProperties:
+    """Тесты property-свойств"""
+
+    def test_is_ready_computed_property(self):
+        """is_ready вычисляется из статуса"""
+        task = Task(id=1, description="Тест", status="new")
+
+        assert task.is_ready is True
+
+        task.status = "in_progress"
+        assert task.is_ready is False
+
+        task.status = "done"
+        assert task.is_ready is False
+
+        task.status = "new"
+        assert task.is_ready is True
+
+    def test_created_at_is_timestamp(self):
+        """created_at - это datetime объект"""
+        task = Task(id=1, description="Тест")
+        assert isinstance(task.created_at, datetime)
+
+    def test_created_at_different_for_different_tasks(self):
+        """У разных задач разное время создания"""
+        import time
+        task1 = Task(id=1, description="Первый")
+        time.sleep(0.01)
+        task2 = Task(id=2, description="Второй")
+
+        assert task2.created_at > task1.created_at
+
+
+class TestDataDescriptorPriority:
+    """Тесты приоритета data descriptor"""
+
+    def test_cannot_bypass_descriptor_via_dict(self):
+        """Нельзя обойти data descriptor через __dict__"""
+        task = Task(id=42, description="Тест", priority=10, status="new")
+
+        # Пытаемся обойти
+        task.__dict__['id'] = -999
+        task.__dict__['priority'] = -100
+        task.__dict__['status'] = "finished"
+
+        # Data descriptor имеет приоритет - значения не изменились
+        assert task.id == 42
+        assert task.priority == 10
+        assert task.status == "new"
+
+
+class TestTaskRepresentation:
+    """Тесты строкового представления"""
+
+    def test_repr_format(self):
+        """Формат __repr__"""
+        task = Task(id=1, description="Тестовая задача", priority=5, status="new")
+
+        repr_str = repr(task)
+
+        assert "Task" in repr_str
+        assert "id=1" in repr_str
+        assert "description='Тестовая задача'" in repr_str
+        assert "priority=5" in repr_str
+        assert "status='new'" in repr_str
+
+    def test_repr_changes_after_modification(self):
+        """__repr__ обновляется после изменения"""
+        task = Task(id=1, description="Тест", priority=1, status="new")
+
+        task.priority = 10
+        task.status = "in_progress"
+
+        repr_str = repr(task)
+        assert "priority=10" in repr_str
+        assert "status='in_progress'" in repr_str
+
+
+class TestTaskInvariants:
+    """Тесты защиты инвариантов"""
+
+    def test_all_invariants_protected(self):
+        """Все инварианты защищены"""
+        task = Task(id=1, description="Тест", priority=1, status="new")
+
+        # Инвариант 1: id > 0
+        with pytest.raises(ValueError):
+            task.id = 0
+        assert task.id > 0
+
+        # Инвариант 2: priority > 0
+        with pytest.raises(ValueError):
+            task.priority = 0
+        assert task.priority > 0
+
+        # Инвариант 3: status в {new, in_progress, done}
+        with pytest.raises(ValueError):
+            task.status = "invalid"
+        assert task.status in {"new", "in_progress", "done"}
+
+        # Инвариант 4: created_at неизменяем
+        with pytest.raises(AttributeError):
+            task.created_at = datetime.now()
+
+
+class TestEdgeCases:
+    """Тесты граничных случаев"""
+
+    def test_maximum_values(self):
+        """Максимальные значения"""
+        task = Task(id=999999, description="Макс ID", priority=999999)
+        assert task.id == 999999
+        assert task.priority == 999999
+
+    def test_description_long_text(self):
+        """Длинное описание"""
+        long_text = "A" * 10000
+        task = Task(id=1, description=long_text)
+        assert task.description == long_text
+
+    def test_status_case_sensitive(self):
+        """Статус чувствителен к регистру"""
+        task = Task(id=1, description="Тест")
+
+        # Только нижний регистр работает
+        with pytest.raises(ValueError):
+            task.status = "NEW"
+
+        with pytest.raises(ValueError):
+            task.status = "In_Progress"
 
 
 if __name__ == "__main__":
-    pytest.main([__file__, "-v", "--cov=src"])
+    pytest.main([__file__, "-v", "--cov=src.contracts.tasks", "--cov-report=term-missing"])
