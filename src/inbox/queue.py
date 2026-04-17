@@ -26,14 +26,14 @@ class TaskQueue:
     def filter_by_status(self, status: str) -> Generator[Task, None, None]:#фильтр по статусу
         for task in self._tasks:
             if task.status == status:
-                yield task
+                yield task #возвращает генератор
 
     def filter_by_priority(self, min_priority: int) -> Generator[Task, None, None]:#фильтр по приоритету
         for task in self._tasks:
             if task.priority >= min_priority:
                 yield task
 
-    def ready_tasks(self) -> Generator[Task, None, None]:#готовые задачи
+    def ready_tasks(self) -> Generator[Task, None, None]:#готовые задачи @property из класса Tasks
         for task in self._tasks:
             if task.is_ready:
                 yield task
