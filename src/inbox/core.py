@@ -7,9 +7,8 @@ class InboxApp:
     """
     Основное приложение
     """
-
     def __init__(self):
-        self.tasks: List[Task] = []#tasks будет списком объектов типа Task
+        self.tasks: List[Task] = []
 
     def load_tasks(self, source: TaskSource):
         #проверка Protocol
